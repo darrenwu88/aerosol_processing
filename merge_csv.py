@@ -21,7 +21,7 @@ from subprocess import call
 PATH = r"C:\Users\wudar\Desktop\Bergin"
 
 #retrieve data (.csv files) from TSI-LINK API
-call(["python", "get_data.py"])
+#call(["python", "get_data.py"])
 
 #create file list by matching files with "8143" index in their serial number/filename. 
 joined_files = os.path.join(PATH, "8143*.csv")
@@ -38,25 +38,25 @@ for file in joined_list:
     df = pd.read_csv(file, skiprows = 8, header = [0, 1])   
    
     # Serial / Timestamp / Long / Lat   format
-    df.insert(0,"Serial Number", serial_number)
-    df.insert(2,"Longitude", long_value)
-    df.insert(3,"Latitude", lat_value)
+    df.insert(0,"Serial Number", serial_number, inplace = True)
+    df.insert(2,"Longitude", long_value, inplace = True)
+    df.insert(3,"Latitude", lat_value, inplace = True)
 
     #overwrite csv files
     df.to_csv(file, index = False)
 
 #merge all csv files in file list
-df_test = pd.concat(map(lambda file: pd.read_csv(file, header = [0,1]), joined_list), ignore_index = True)
+#df_test = pd.concat(map(lambda file: pd.read_csv(file, header = [0,1]), joined_list), ignore_index = True)
 
 #Sort by datetime in merged csv file
-df_test = df_test.sort_values(by = ("Timestamp", "UTC"), ascending = True)
+#df_test = df_test.sort_values(by = ("Timestamp", "UTC"), ascending = True)
 
 #Remove NaN populated values in the units row
-df_test = df_test.rename(columns = lambda x: x if not "Unnamed" in str(x) else "")
+#df_test = df_test.rename(columns = lambda x: x if not "Unnamed" in str(x) else "")
 
 #output
-df_test.to_csv("merged.csv", index = False)
+#df_test.to_csv("merged.csv", index = False)
 
 #option to delete the original files (for storage space purposes)
-for file in joined_list:
-    os.remove(file)
+#for file in joined_list:
+    #os.remove(file)

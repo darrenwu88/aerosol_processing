@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 df_raw = pd.read_csv('mergedfinal.csv')
-print("asd")
+
 #drop the calibration columns
 df_raw.drop(df_raw.columns[[6, 9]], axis = 1, inplace = True)
 
@@ -37,4 +37,4 @@ df_raw.drop([0], inplace = True)
 df_raw["Serial Number"] = df_raw["Serial Number"].astype(np.int64)
 
 #output
-df_raw.to_csv('test.csv', index = False)
+df_raw.to_csv('RefinedData.csv', index = False)

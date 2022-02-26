@@ -8,7 +8,7 @@ import glob
 
 """ 
     Author: Darren Wu 
-    Date: 2/12/2022
+    Date: 2/22/2022
 
     This program parses through all the downloaded sensor data from the API and merges all the .csv files together. 
     It sorts the merged .csv file by timestamp. The individual "merged data" can also be sourced from their respective
@@ -110,8 +110,8 @@ def get_data(json_fname):
 #optional arguments
     headers.update({'Accept': 'text/csv'})  #comment out this line for json
     data_age="&age=1" #days of data (can be used with start date)
-#data_start_date = "&start_date=2021-09-05T00:00:00.000Z"  #use UTC format.  
-#data_end_date = "&end_date=2021-09-10T23:59:59.000Z"  #use UTC format
+    #data_start_date = "&start_date=2021-01-01T00:00:00.000Z"  #use UTC format.  
+    #data_end_date = "&end_date=2021-12-31T23:59:59.000Z"  #use UTC format
     if (data_start_date != "" and data_end_date != ""):
         fname_s = data_start_date[12:22]  #only want the date part of the string
         fname_e = data_end_date[10:20]
@@ -137,7 +137,7 @@ def get_data(json_fname):
     os.remove("tokencache.txt")
 
 def mergeindividual():
-    PATH = r"C:\Users\wudar\Desktop\Bergin"
+    PATH = r"C:\Users\wudar\Desktop\Bergin_Research"
 
 #retrieve data (.csv files) from TSI-LINK API
     get_data("secrets-c2mgvpsfp7ufo92pvpp0.json")
