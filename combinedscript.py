@@ -109,9 +109,9 @@ def get_data(json_fname):
     headers['Authorization'] = tok_code
 #optional arguments
     headers.update({'Accept': 'text/csv'})  #comment out this line for json
-    data_age="&age=1" #days of data (can be used with start date)
-    #data_start_date = "&start_date=2021-01-01T00:00:00.000Z"  #use UTC format.  
-    #data_end_date = "&end_date=2021-12-31T23:59:59.000Z"  #use UTC format
+    #data_age="&age=1" #days of data (can be used with start date)
+    data_start_date = "&start_date=2021-10-06T00:00:00.000Z"  #use UTC format.  
+    data_end_date = "&end_date=2022-01-10T23:59:59.000Z"  #use UTC format
     if (data_start_date != "" and data_end_date != ""):
         fname_s = data_start_date[12:22]  #only want the date part of the string
         fname_e = data_end_date[10:20]
@@ -142,6 +142,7 @@ def mergeindividual():
 #retrieve data (.csv files) from TSI-LINK API
     get_data("secrets-c2mgvpsfp7ufo92pvpp0.json")
     get_data("secrets-c4257c0qi9clu8nikfgg.json")
+    #get_data("secrets-c3pq1sgqi9clu8nik8sg.json")
 
 #create file list by matching files with "8143" index in their serial number/filename. 
     joined_files = os.path.join(PATH, "8143*.csv")
@@ -169,7 +170,8 @@ def mergeindividual():
     df_test = pd.concat(map(lambda file: pd.read_csv(file, header = [0,1]), joined_list), ignore_index = True)
 
 #Sort by datetime in merged csv file
-    df_test = df_test.sort_values(by = ("Timestamp", "UTC"), ascending = True)
+    #df_test['Timestamp']['UTC'] =  pd.to_datetime(df_test['Timestamp']['UTC'], format='%m/%d/%Y %H:%M')
+    #df_test = df_test.sort_values(by = ("Timestamp", "UTC"), ascending = True)
 
 #Remove NaN populated values in the units row
     df_test = df_test.rename(columns = lambda x: x if not "Unnamed" in str(x) else "")
@@ -216,6 +218,13 @@ for col in df_raw.columns:
 df_raw = df_raw.rename(columns = lambda x: x if not "(nan)" in str(x) else x[:(len(x) - 6)])
 df_raw.drop([0], inplace = True)
 
+#sort datetime column correctly
+df_raw["Timestamp (UTC)"] = pd.to_datetime(df_raw["Timestamp (UTC)"])
+df_raw = df_raw.sort_values(by = "Timestamp (UTC)", ascending = True, kind = 'mergesort')
+#reformat datetime into original format 
+df_raw["Timestamp (UTC)"] = df_raw["Timestamp (UTC)"].dt.strftime("%m/%d/%Y %H:%M")
+
+#revert type of serial number column
 df_raw["Serial Number"] = df_raw["Serial Number"].astype(np.int64)
 
 #output

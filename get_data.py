@@ -35,7 +35,7 @@ will get an error so it is cached in a local file.
 #read security token cache file
 CACHE_FILENAME = "tokencache.txt"
 tok_expires = 86400 #24 hrs typical
-BUFFER = 60 #seconds.  How long it takes to run the rest of your program 
+BUFFER = 120 #seconds.  How long it takes to run the rest of your program 
 # after reading the security token.  Increase if needed.
 tokencached = False
 if os.path.exists(CACHE_FILENAME):
@@ -133,9 +133,9 @@ data_start_date = data_age = data_end_date = ""
 headers['Authorization'] = tok_code
 #optional arguments
 headers.update({'Accept': 'text/csv'})  #comment out this line for json
-data_age="&age=1" #days of data (can be used with start date)
-#data_start_date = "&start_date=2021-09-05T00:00:00.000Z"  #use UTC format.  
-#data_end_date = "&end_date=2021-09-10T23:59:59.000Z"  #use UTC format
+#data_age="&age=1" #days of data (can be used with start date)
+data_start_date = "&start_date=2021-12-30T00:00:00.000Z"  #use UTC format.  
+data_end_date = "&end_date=2022-01-02T00:00:00.000Z"  #use UTC format
 if (data_start_date != "" and data_end_date != ""):
     fname_s = data_start_date[12:22]  #only want the date part of the string
     fname_e = data_end_date[10:20]
@@ -157,5 +157,3 @@ for x in range(num_sensors):
     f.write(response.text)
     f.close()
 
-#remove tokencache.txt
-os.remove("tokencache.txt")

@@ -109,9 +109,9 @@ def get_data(json_fname):
     headers['Authorization'] = tok_code
 #optional arguments
     headers.update({'Accept': 'text/csv'})  #comment out this line for json
-    data_age="&age=1" #days of data (can be used with start date)
-    #data_start_date = "&start_date=2021-01-01T00:00:00.000Z"  #use UTC format.  
-    #data_end_date = "&end_date=2021-12-31T23:59:59.000Z"  #use UTC format
+    #data_age="&age=1" #days of data (can be used with start date)
+    data_start_date = "&start_date=2021-12-15T00:00:00.000Z"  #use UTC format.  
+    data_end_date = "&end_date=2022-01-31T23:59:59.000Z"  #use UTC format
     if (data_start_date != "" and data_end_date != ""):
         fname_s = data_start_date[12:22]  #only want the date part of the string
         fname_e = data_end_date[10:20]
@@ -141,7 +141,7 @@ def mergeindividual():
 
 #retrieve data (.csv files) from TSI-LINK API
     get_data("secrets-c2mgvpsfp7ufo92pvpp0.json")
-    get_data("secrets-c4257c0qi9clu8nikfgg.json")
+    #get_data("secrets-c4257c0qi9clu8nikfgg.json")
 
 #create file list by matching files with "8143" index in their serial number/filename. 
     joined_files = os.path.join(PATH, "8143*.csv")
@@ -166,10 +166,12 @@ def mergeindividual():
         df.to_csv(file, index = False)
 
 #merge all csv files in file list
+    
     df_test = pd.concat(map(lambda file: pd.read_csv(file, header = [0,1]), joined_list), ignore_index = True)
+    df_test["Timestamp"]["UTC"] = pd.to_datetime(df_test["Timestamp"]["UTC"])
 
 #Sort by datetime in merged csv file
-    df_test = df_test.sort_values(by = ("Timestamp", "UTC"), ascending = True)
+    df_test = df_test.sort_values(by = ("Timestamp", "UTC"), ascending = False)
 
 #Remove NaN populated values in the units row
     df_test = df_test.rename(columns = lambda x: x if not "Unnamed" in str(x) else "")
