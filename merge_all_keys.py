@@ -171,7 +171,7 @@ def mergeindividual():
     df_test["Timestamp"]["UTC"] = pd.to_datetime(df_test["Timestamp"]["UTC"])
 
 #Sort by datetime in merged csv file
-    df_test = df_test.sort_values(by = ("Timestamp", "UTC"), ascending = False)
+    df_test = df_test.sort_values(by = ("Timestamp", "UTC"), ascending = True)
 
 #Remove NaN populated values in the units row
     df_test = df_test.rename(columns = lambda x: x if not "Unnamed" in str(x) else "")
