@@ -25,7 +25,7 @@ def get_data(json_fname):
         cred_data = json.load(cred_file)
 
 #read security token cache file
-    CACHE_FILENAME = "TOKENCACHE_" + json_fname[9:-5] + ".txt" #identifying token for each secret
+    CACHE_FILENAME = "TOKENCACHE_" + json_fname[8:-5] + ".txt" #identifying token for each secret
     tok_expires = 86400 #24 hrs typical
     BUFFER = 60 #seconds.  How long it takes to run the rest of your program 
 # after reading the security token.  Increase if needed.
