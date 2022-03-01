@@ -1,6 +1,14 @@
 import pandas as pd
 import numpy as np
 
+""" 
+    Author: Darren Wu 
+    Date: 2/24/2022
+
+    This program deploys QA towards the raw, merged .csv files called from the TSI-Link API.
+
+"""
+
 df_raw = pd.read_csv('mergedfinal.csv')
 
 #drop the calibration columns

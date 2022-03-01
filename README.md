@@ -1,4 +1,6 @@
-"# airsensor_processing" 
+"# airsensor_processing"
+
+Author: Darren Wu
 
 **Run combinedscript.py to obtain merged & formatted .csv file that underwent data QA.**
 
