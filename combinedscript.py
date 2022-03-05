@@ -167,7 +167,7 @@ def mergeindividual():
         df.insert(3,"Longitude", long_value)
         df.insert(4,"Latitude", lat_value)
         df.insert(5,"is_indoors", is_indoors)
-        df.insert(23,"Site Name", site_name)
+        df['Site Name'] = site_name
 
     #overwrite csv files
         df.to_csv(file, index = False)
