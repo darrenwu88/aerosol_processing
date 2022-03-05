@@ -8,7 +8,7 @@ import glob
 
 """ 
     Author: Darren Wu 
-    Date: 2/22/2022
+    Date: 2/28/2022
 
     This program parses through all the downloaded sensor data from the API and merges all the .csv files together. 
     It sorts the merged .csv file by timestamp. The individual "merged data" can also be sourced from their respective
@@ -16,6 +16,8 @@ import glob
 
     Unlike the merge_csv.py script, this program is able to take multiple .json "secret keys" as inputs; therefore, 
     collaborators' sensors' data can be aggregated together as well.
+
+    The script also deploys QA operations on the .csv files for the Bergin Lab. See QA_cleanse.py for more info.
 
 """
 
@@ -110,8 +112,8 @@ def get_data(json_fname):
 #optional arguments
     headers.update({'Accept': 'text/csv'})  #comment out this line for json
     #data_age="&age=1" #days of data (can be used with start date)
-    data_start_date = "&start_date=2021-10-06T00:00:00.000Z"  #use UTC format.  
-    data_end_date = "&end_date=2022-01-10T23:59:59.000Z"  #use UTC format
+    data_start_date = "&start_date=2022-01-01T00:00:00.000Z"  #use UTC format.  
+    data_end_date = "&end_date=2022-03-03T23:59:59.000Z"  #use UTC format
     if (data_start_date != "" and data_end_date != ""):
         fname_s = data_start_date[12:22]  #only want the date part of the string
         fname_e = data_end_date[10:20]
@@ -140,6 +142,7 @@ def mergeindividual():
     get_data("secrets-c2mgvpsfp7ufo92pvpp0.json")
     get_data("secrets-c4257c0qi9clu8nikfgg.json")
     get_data("secrets-c3pq1sgqi9clu8nik8sg.json")
+    get_data("secrets-c3ntnbr5lksr8n0vf7d0.json")
 
 #create file list by matching files with "8143" index in their serial number/filename. 
     joined_files = os.path.join(PATH, "8143*.csv")
@@ -148,17 +151,23 @@ def mergeindividual():
 #add 3 cols within each csv file (sensor): serial number, long, lat
     for file in joined_list:
     #retrieve values from sensor ID data
-        df_values = pd.read_csv(file, header = None, nrows = 7)
+        df_values = pd.read_csv(file, header = None, sep = r',(?!\s)', nrows = 7)
         serial_number = df_values.iloc[2][1]
         lat_value = df_values.iloc[5][1]
         long_value = df_values.iloc[6][1]
-
-        df = pd.read_csv(file, skiprows = 8, header = [0, 1])   
-   
-    # Serial / Timestamp / Long / Lat   format
+        site_name = df_values.iloc[3][1]
+        is_indoors = df_values.iloc[4][1]
+    #retrieve values from countrysn.csv
+        df_sn = pd.read_csv("countrySN.csv", header = 0)  
+        country = df_sn.loc[int(df_sn[df_sn['Serial Number'] == int(serial_number)].index[0]), 'Country']
+    # Serial / Site Name / Country / Timestamp / Long / Lat / is_indoors   format
+        df = pd.read_csv(file, skiprows = 8, header = [0, 1])  
         df.insert(0,"Serial Number", serial_number)
-        df.insert(2,"Longitude", long_value)
-        df.insert(3,"Latitude", lat_value)
+        df.insert(1,"Country", country)
+        df.insert(3,"Longitude", long_value)
+        df.insert(4,"Latitude", lat_value)
+        df.insert(5,"is_indoors", is_indoors)
+        df.insert(23,"Site Name", site_name)
 
     #overwrite csv files
         df.to_csv(file, index = False)
@@ -166,9 +175,18 @@ def mergeindividual():
 #merge all csv files in file list
     df_test = pd.concat(map(lambda file: pd.read_csv(file, header = [0,1]), joined_list), ignore_index = True)
 
+# Commented out code is something that just didn't work, maybe revisit later?
+
 #Sort by datetime in merged csv file
     #df_test['Timestamp']['UTC'] =  pd.to_datetime(df_test['Timestamp']['UTC'], format='%m/%d/%Y %H:%M')
     #df_test = df_test.sort_values(by = ("Timestamp", "UTC"), ascending = True)
+
+#sort datetime column correctly
+    #df_test['Timestamp']['UTC'] = pd.to_datetime(df_test['Timestamp']['UTC'], format = '%m/%d/%Y %H:%M')
+    #print(df_test['Timestamp']['UTC'])
+    #df_test = df_test.sort_values([('Timestamp', 'UTC')], ascending = True, kind = 'mergesort')
+    #reformat datetime into original format 
+    #df_test['Timestamp']['UTC'] = df_test['Timestamp']['UTC'].dt.strftime("%m/%d/%Y %H:%M")
 
 #Remove NaN populated values in the units row
     df_test = df_test.rename(columns = lambda x: x if not "Unnamed" in str(x) else "")
@@ -188,7 +206,8 @@ def mergeeverything():
     df_raw = pd.read_csv('RAW.csv')
 
     #drop the calibration columns
-    df_raw.drop(df_raw.columns[[6, 9]], axis = 1, inplace = True)
+    #df_raw.drop(df_raw.columns[[6, 9]], axis = 1, inplace = True)
+    df_raw.drop(df_raw.columns[[9, 12]], axis = 1, inplace = True)
 
     #insert Case Error
     case_error = df_raw['Device Status'][1:].astype(int).map(lambda x: (f'{x:08b}')).astype(str).map(lambda x: x[0:5]).map(lambda x: x[-1:])
@@ -234,9 +253,7 @@ def mergeeverything():
 userinput = input("Which output do you want: RAW or MERGED? (1/2)")
 
 if userinput == "1":
-    get_data("secrets-c2mgvpsfp7ufo92pvpp0.json")
-    get_data("secrets-c4257c0qi9clu8nikfgg.json")
-    get_data("secrets-c3pq1sgqi9clu8nik8sg.json")
+    print("hahaha")
 
 elif userinput == "2":
     mergeeverything()
