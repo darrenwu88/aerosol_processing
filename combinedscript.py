@@ -143,7 +143,8 @@ def mergeindividual():
     get_data("secrets-c4257c0qi9clu8nikfgg.json")
     get_data("secrets-c3pq1sgqi9clu8nik8sg.json")
     get_data("secrets-c3ntnbr5lksr8n0vf7d0.json")
-
+    get_data("secrets-c3r1gb0qi9clu8nik91g.json")
+    get_data("secrets-c3t9bo8qi9clu8nikakg.json")
 #create file list by matching files with "8143" index in their serial number/filename. 
     joined_files = os.path.join(PATH, "8143*.csv")
     joined_list = glob.glob(joined_files)
@@ -164,10 +165,10 @@ def mergeindividual():
         df = pd.read_csv(file, skiprows = 8, header = [0, 1])  
         df.insert(0,"Serial Number", serial_number)
         df.insert(1,"Country", country)
-        df.insert(3,"Longitude", long_value)
-        df.insert(4,"Latitude", lat_value)
-        df.insert(5,"is_indoors", is_indoors)
-        df['Site Name'] = site_name
+        df.insert(2,'Site Name', site_name)
+        df.insert(4,"Longitude", long_value)
+        df.insert(5,"Latitude", lat_value)
+        df.insert(6,"is_indoors", is_indoors)
 
     #overwrite csv files
         df.to_csv(file, index = False)
