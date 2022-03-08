@@ -9,13 +9,11 @@ import glob
 
 
 
-PATH = r"C:\Users\wudar\Desktop\Bergin_Research"
-joined_files = os.path.join(PATH, "8143*.csv")
+PATH = r"C:\Users\wudar\Desktop\Bergin_Research\partialScripts"
+joined_files = os.path.join(PATH, "Dhaka*.csv")
 joined_list = glob.glob(joined_files)
 #df_values = pd.read_csv('81432123017_2022-01-01_2022-03-03.csv', header = None, sep = r',(?!\s)', nrows = 7)
 #site_name = df_values.iloc[3][1]
 #print(site_name)
 for file in joined_list:
-        os.remove(file)
-        #df_values = pd.read_csv(file, header = None, nrows = 7)
-        #site_name = df_values.iloc[3][1]
+        print((os.path.splitext(os.path.basename(file))[0]).split('(inside)')[0])
