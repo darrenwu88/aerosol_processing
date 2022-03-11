@@ -1,0 +1,10 @@
+device_id,c8b5tv50i1lm2hda89d0
+model,8143
+serial,81432147078
+friendlyName,cdes23
+is_indoor,False
+latitude,28.2320429
+longitude,85.79215171
+
+Timestamp,PM1.0,PM2.5,Applied PM2.5 Custom Calibration Factor,PM4.0,PM10,Applied PM10 Custom Calibration Factor,PM0.5 NC,PM1.0 NC,PM2.5 NC,PM4.0 NC,PM10 NC,Typical Particle Size,PM Sensor Status,Temperature,Relative Humidity,Device Status
+UTC,ug/m3,ug/m3,,ug/m3,ug/m3,,#/cm3,#/cm3,#/cm3,#/cm3,#/cm3,um,,Celsius,%,

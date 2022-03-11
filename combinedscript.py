@@ -112,8 +112,8 @@ def get_data(json_fname):
 #optional arguments
     headers.update({'Accept': 'text/csv'})  #comment out this line for json
     #data_age="&age=1" #days of data (can be used with start date)
-    data_start_date = "&start_date=2022-01-01T00:00:00.000Z"  #use UTC format.  
-    data_end_date = "&end_date=2022-03-03T23:59:59.000Z"  #use UTC format
+    data_start_date = "&start_date=2021-12-01T00:00:00.000Z"  #use UTC format.  
+    data_end_date = "&end_date=2021-12-31T23:59:59.000Z"  #use UTC format
     if (data_start_date != "" and data_end_date != ""):
         fname_s = data_start_date[12:22]  #only want the date part of the string
         fname_e = data_end_date[10:20]
@@ -145,6 +145,7 @@ def mergeindividual():
     get_data("secrets-c3ntnbr5lksr8n0vf7d0.json")
     get_data("secrets-c3r1gb0qi9clu8nik91g.json")
     get_data("secrets-c3t9bo8qi9clu8nikakg.json")
+    get_data("secrets-c3smtl0qi9clu8nikadg.json")
 #create file list by matching files with "8143" index in their serial number/filename. 
     joined_files = os.path.join(PATH, "8143*.csv")
     joined_list = glob.glob(joined_files)
@@ -161,39 +162,45 @@ def mergeindividual():
     #retrieve values from countrysn.csv
         df_sn = pd.read_csv("countrySN.csv", header = 0)  
         country = df_sn.loc[int(df_sn[df_sn['Serial Number'] == int(serial_number)].index[0]), 'Country']
-    # Serial / Site Name / Country / Timestamp / Long / Lat / is_indoors   format
+
+    #read df
         df = pd.read_csv(file, skiprows = 8, header = [0, 1])  
+    
+    #Serial / Site Name / Country / Timestamp / Long / Lat / is_indoors   format 
         df.insert(0,"Serial Number", serial_number)
         df.insert(1,"Country", country)
         df.insert(2,'Site Name', site_name)
         df.insert(4,"Longitude", long_value)
         df.insert(5,"Latitude", lat_value)
         df.insert(6,"is_indoors", is_indoors)
+    
+    #calculate time delta of sensor data retrieval (e.g. 15 min or 1 min usually)
+        timetime =  pd.to_datetime(df['Timestamp', 'UTC'], format='%m/%d/%Y %H:%M')
 
-    #overwrite csv files
+    #account for times where data isn't continuous
+        if (len(timetime) != 0):
+                sensor_timedelta = timetime.diff().value_counts().idxmax().total_seconds() / 60
+                df.insert(len(df.columns),'Time Delta', sensor_timedelta)
+
+
+    #for shuba, comment out otherwise
+        df.insert(4, "Year", timetime.dt.strftime('%Y'))
+        df.insert(5, "Month", timetime.dt.strftime('%m'))
+        df.insert(6, "Day", timetime.dt.strftime('%d'))
+        df.insert(7, "Hour", timetime.dt.strftime('%H'))
+
+        #overwrite csv files
         df.to_csv(file, index = False)
 
-#merge all csv files in file list
+    #merge all csv files in file list
     df_test = pd.concat(map(lambda file: pd.read_csv(file, header = [0,1]), joined_list), ignore_index = True)
 
-# Commented out code is something that just didn't work, maybe revisit later?
-
-#Sort by datetime in merged csv file
-    #df_test['Timestamp']['UTC'] =  pd.to_datetime(df_test['Timestamp']['UTC'], format='%m/%d/%Y %H:%M')
-    #df_test = df_test.sort_values(by = ("Timestamp", "UTC"), ascending = True)
-
-#sort datetime column correctly
-    #df_test['Timestamp']['UTC'] = pd.to_datetime(df_test['Timestamp']['UTC'], format = '%m/%d/%Y %H:%M')
-    #print(df_test['Timestamp']['UTC'])
-    #df_test = df_test.sort_values([('Timestamp', 'UTC')], ascending = True, kind = 'mergesort')
-    #reformat datetime into original format 
-    #df_test['Timestamp']['UTC'] = df_test['Timestamp']['UTC'].dt.strftime("%m/%d/%Y %H:%M")
-
-#Remove NaN populated values in the units row
+    #Remove NaN populated values in the units row
     df_test = df_test.rename(columns = lambda x: x if not "Unnamed" in str(x) else "")
 
-#output
+    #output
     df_test.to_csv("RAW.csv", index = False)
+
 
 #option to delete the original files (for storage space purposes)
     for file in joined_list:
@@ -205,27 +212,11 @@ def mergeeverything():
     mergeindividual()
 
     df_raw = pd.read_csv('RAW.csv')
-
+    #df_raw = mergeindividual()
+    
     #drop the calibration columns
     #df_raw.drop(df_raw.columns[[6, 9]], axis = 1, inplace = True)
-    df_raw.drop(df_raw.columns[[9, 12]], axis = 1, inplace = True)
-
-    #insert Case Error
-    case_error = df_raw['Device Status'][1:].astype(int).map(lambda x: (f'{x:08b}')).astype(str).map(lambda x: x[0:5]).map(lambda x: x[-1:])
-    df_raw.insert(len(df_raw.columns), 'Case Error', case_error)
-
-    #insert PM Sensor Error
-    PM_sensor_error = df_raw['Device Status'][1:].astype(int).map(lambda x: (f'{x:08b}')).astype(str).map(lambda x: x[0:4]).map(lambda x: x[-1:])
-    df_raw.insert(len(df_raw.columns), 'PM Sensor Error', PM_sensor_error)
-
-    #Remove T, RH if case_error = 1
-    df_raw.loc[df_raw['Case Error'] == '1', ['Temperature', 'Relative Humidity']] = None
-
-    #Remove PM2.5, PM10 if pm_sensor_error = 1
-    df_raw.loc[df_raw['PM Sensor Error'] == '1', ['PM2.5 NC', 'PM10 NC']] = None
-
-    #delete error columns
-    df_raw.drop(['Case Error', 'PM Sensor Error'], axis = 1, inplace = True)
+    #df_raw.drop(df_raw.columns[[9, 12]], axis = 1, inplace = True)
 
     #collapse headers
     for col in df_raw.columns:
@@ -247,8 +238,36 @@ def mergeeverything():
     #revert type of serial number column
     df_raw["Serial Number"] = df_raw["Serial Number"].astype(np.int64)
 
+
+    df_raw.to_csv('Level0.csv', index = False)
+
+    ### LEVEL 1 QA
+
+    #insert Case Error
+    case_error = df_raw['Device Status'][1:].astype(int).map(lambda x: (f'{x:08b}')).astype(str).map(lambda x: x[0:5]).map(lambda x: x[-1:])
+    df_raw.insert(len(df_raw.columns), 'Case Error', case_error)
+
+    #insert PM Sensor Error
+    PM_sensor_error = df_raw['Device Status'][1:].astype(int).map(lambda x: (f'{x:08b}')).astype(str).map(lambda x: x[0:4]).map(lambda x: x[-1:])
+    df_raw.insert(len(df_raw.columns), 'PM Sensor Error', PM_sensor_error)
+
+    #Remove T, RH if case_error = 1
+    df_raw.loc[df_raw['Case Error'] == '1', ['Temperature (Celsius)', 'Relative Humidity (%)']] = None
+
+    #Remove PM2.5, PM10 if pm_sensor_error = 1
+    df_raw.loc[df_raw['PM Sensor Error'] == '1', 
+        ['PM1.0 (ug/m3)', 'PM2.5 (ug/m3)', 'PM4.0 (ug/m3)', 'PM10 (ug/m3)', 
+        'PM1.0 NC (#/cm3)', 'PM0.5 NC (#/cm3)', 'PM1.0 NC (#/cm3)', 'PM2.5 NC (#/cm3)', 
+        'PM4.0 NC (#/cm3)', 'PM10 NC (#/cm3)', 'Typical Particle Size (um)']] = None
+
+    #delete error columns
+    df_raw.drop(['Case Error', 'PM Sensor Error'], axis = 1, inplace = True)
+
+    ### OUTPUT
     #output
-    df_raw.to_csv('RefinedData.csv', index = False)
+    df_raw.to_csv('Level1.csv', index = False)
+
+    
 
 #user input for RAW or MERGED file
 userinput = input("Which output do you want: RAW or MERGED? (1/2)")

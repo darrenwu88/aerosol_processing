@@ -23,7 +23,7 @@ interface. TSI is not responsible for any damage or data loss due to using
 or modifying the code below.
 -------------- Read credentials file --------------"""
 #replace filename with your file from TSI-L ink API
-with open("secrets-c3t9bo8qi9clu8nikakg.json") as cred_file:  
+with open("secrets-c3smtl0qi9clu8nikadg.json") as cred_file:  
     cred_data = json.load(cred_file)
     
 """-------------- Get security token information --------------
