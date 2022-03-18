@@ -42,6 +42,12 @@ elif (df_hourly['Time Delta'].iloc[0] == 15.0):
         grouping = df_hourly.groupby([df_hourly['Timestamp', 'UTC'].dt.year, df_hourly['Timestamp', 'UTC'].dt.month, df_hourly['Timestamp', 'UTC'].dt.day, df_hourly['Timestamp', 'UTC'].dt.hour])
         df_hourly = grouping.filter(lambda x: len(x) >= 3)
 
+td = df_hourly['Time Delta'].iloc[0]
+completeness_criteria = (60.0 / td) * 0.75
+grouping = df_hourly.groupby([df_hourly['Timestamp', 'UTC'].dt.year, df_hourly['Timestamp', 'UTC'].dt.month, df_hourly['Timestamp', 'UTC'].dt.day, df_hourly['Timestamp', 'UTC'].dt.hour])
+df_hourly = grouping.filter(lambda x: len(x) >= completeness_criteria)
+df_hourly.to_csv('test.csv', index = False )
+
 #df_hourly.set_index(df_hourly['Timestamp', 'UTC'])
 df_hourly = df_hourly.groupby([df_hourly['Timestamp', 'UTC'].dt.year, df_hourly['Timestamp', 'UTC'].dt.month, df_hourly['Timestamp', 'UTC'].dt.day, df_hourly['Timestamp', 'UTC'].dt.hour],as_index=False).mean()
 print(df_hourly)

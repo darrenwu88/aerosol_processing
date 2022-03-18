@@ -23,7 +23,8 @@ import glob
 
 def get_data(json_fname):
 #replace filename with your file from TSI-Link API
-    with open(json_fname) as cred_file:  
+#os.path.join('./monomer-b', xyzfile)
+    with open(os.path.join(r'./admin_secrets', json_fname)) as cred_file:  
         cred_data = json.load(cred_file)
 
 #read security token cache file
@@ -112,8 +113,8 @@ def get_data(json_fname):
 #optional arguments
     headers.update({'Accept': 'text/csv'})  #comment out this line for json
     #data_age="&age=1" #days of data (can be used with start date)
-    data_start_date = "&start_date=2021-12-01T00:00:00.000Z"  #use UTC format.  
-    data_end_date = "&end_date=2021-12-31T23:59:59.000Z"  #use UTC format
+    data_start_date = "&start_date=2022-03-01T00:00:00.000Z"  #use UTC format.  
+    data_end_date = "&end_date=2022-03-03T23:59:59.000Z"  #use UTC format
     if (data_start_date != "" and data_end_date != ""):
         fname_s = data_start_date[12:22]  #only want the date part of the string
         fname_e = data_end_date[10:20]
@@ -149,11 +150,18 @@ def mergeindividual():
 #create file list by matching files with "8143" index in their serial number/filename. 
     joined_files = os.path.join(PATH, "8143*.csv")
     joined_list = glob.glob(joined_files)
-
+    
 #add 3 cols within each csv file (sensor): serial number, long, lat
     for file in joined_list:
+
+    #filename
+        #filename = 'hour_' + os.path.basename(file)
+        #hourly_file = 
     #retrieve values from sensor ID data
+
+    #source: 
         df_values = pd.read_csv(file, header = None, sep = r',(?!\s)', nrows = 7)
+
         serial_number = df_values.iloc[2][1]
         lat_value = df_values.iloc[5][1]
         long_value = df_values.iloc[6][1]
@@ -175,36 +183,38 @@ def mergeindividual():
         df.insert(6,"is_indoors", is_indoors)
     
     #calculate time delta of sensor data retrieval (e.g. 15 min or 1 min usually)
-        timetime =  pd.to_datetime(df['Timestamp', 'UTC'], format='%m/%d/%Y %H:%M')
+        time =  pd.to_datetime(df['Timestamp', 'UTC'], format='%m/%d/%Y %H:%M')
 
     #account for times where data isn't continuous
-        if (len(timetime) != 0):
-                sensor_timedelta = timetime.diff().value_counts().idxmax().total_seconds() / 60
+        if (len(time) != 0):
+                sensor_timedelta = time.diff().value_counts().idxmax().total_seconds() / 60
                 df.insert(len(df.columns),'Time Delta', sensor_timedelta)
 
-
-    #for shuba, comment out otherwise
-        df.insert(4, "Year", timetime.dt.strftime('%Y'))
-        df.insert(5, "Month", timetime.dt.strftime('%m'))
-        df.insert(6, "Day", timetime.dt.strftime('%d'))
-        df.insert(7, "Hour", timetime.dt.strftime('%H'))
+    #for Shuba's R code, comment out otherwise
+        #df.insert(4, "Year", timetime.dt.strftime('%Y'))
+        #df.insert(5, "Month", timetime.dt.strftime('%m'))
+        #df.insert(6, "Day", timetime.dt.strftime('%d'))
+        #df.insert(7, "Hour", timetime.dt.strftime('%H'))
 
         #overwrite csv files
         df.to_csv(file, index = False)
 
     #merge all csv files in file list
     df_test = pd.concat(map(lambda file: pd.read_csv(file, header = [0,1]), joined_list), ignore_index = True)
-
     #Remove NaN populated values in the units row
     df_test = df_test.rename(columns = lambda x: x if not "Unnamed" in str(x) else "")
+
+
 
     #output
     df_test.to_csv("RAW.csv", index = False)
 
 
+
 #option to delete the original files (for storage space purposes)
     for file in joined_list:
         os.remove(file)
+
 
 #method for outputting merged everything   
 def mergeeverything():
@@ -212,22 +222,22 @@ def mergeeverything():
     mergeindividual()
 
     df_raw = pd.read_csv('RAW.csv')
-    #df_raw = mergeindividual()
-    
-    #drop the calibration columns
-    #df_raw.drop(df_raw.columns[[6, 9]], axis = 1, inplace = True)
-    #df_raw.drop(df_raw.columns[[9, 12]], axis = 1, inplace = True)
 
     #collapse headers
     for col in df_raw.columns:
+
         # get first row value for this specific column
         first_row = df_raw.iloc[0][col]
         new_column_name = str(col) + ' (' + str(first_row) + ')'  #first_row
+
         # rename the column with the existing column header plus the first row of that column's data 
         df_raw.rename(columns = {col: new_column_name}, inplace = True)
 
     df_raw = df_raw.rename(columns = lambda x: x if not "(nan)" in str(x) else x[:(len(x) - 6)])
     df_raw.drop([0], inplace = True)
+
+    #convert data cols from str to int
+    df_raw[['PM1.0 (ug/m3)', 'PM2.5 (ug/m3)', 'PM4.0 (ug/m3)', 'PM10 (ug/m3)']] = df_raw[['PM1.0 (ug/m3)', 'PM2.5 (ug/m3)', 'PM4.0 (ug/m3)', 'PM10 (ug/m3)']].apply(pd.to_numeric, downcast = 'signed', errors='coerce')
 
     #sort datetime column correctly
     df_raw["Timestamp (UTC)"] = pd.to_datetime(df_raw["Timestamp (UTC)"])
@@ -240,6 +250,36 @@ def mergeeverything():
 
 
     df_raw.to_csv('Level0.csv', index = False)
+
+    ### Level 0 Hourly 
+
+    df_hourly = pd.read_csv('Level0.csv')
+    time = pd.to_datetime(df_hourly['Timestamp (UTC)'], format='%m/%d/%Y %H:%M')
+
+    grouping = df_hourly.groupby(['Serial Number', time.dt.year, time.dt.month, time.dt.day, time.dt.hour]).transform(lambda x: len(x))
+    count = grouping['Time Delta']
+    df_hourly.insert(len(df_hourly.columns),'Entry Count', count)
+
+    df_hourly = df_hourly[df_hourly['Entry Count'] * df_hourly['Time Delta'] >= 45]
+
+    df_hourly_groups = df_hourly.groupby(['Serial Number', time.dt.year, time.dt.month, time.dt.day, time.dt.hour, 
+                                        'Country', 'Site Name', 'Longitude', 'Latitude', 'is_indoors'], as_index = True)
+
+    df_hourly = df_hourly_groups[['PM1.0 (ug/m3)','PM2.5 (ug/m3)','PM4.0 (ug/m3)','PM10 (ug/m3)',
+                                'PM0.5 NC (#/cm3)','PM1.0 NC (#/cm3)','PM2.5 NC (#/cm3)','PM4.0 NC (#/cm3)',    
+                                'PM10 NC (#/cm3)','Typical Particle Size (um)','Temperature (Celsius)',
+                                'Relative Humidity (%)', 'Time Delta', 'Entry Count']].mean()
+    
+    #format columns so csv format stays the same
+    df_hourly = df_hourly.reset_index(level = ['Serial Number', 'Country', 'Site Name', 'Longitude', 'Latitude', 'is_indoors'])
+    df_hourly.insert(3,'Timestamp (UTC)', df_hourly.index)
+    df_hourly.insert(9,'Applied PM2.5 Custom Calibration Factor', "")
+    df_hourly.insert(12,'Applied PM10 Custom Calibration Factor', "")
+
+    #convert tuple timestamp to datetime type
+    df_hourly['Timestamp (UTC)'] = df_hourly['Timestamp (UTC)'].apply(lambda x: datetime(*x))
+    df_hourly['Timestamp (UTC)'] = df_hourly['Timestamp (UTC)'].dt.strftime('%m/%d/%Y %H:%M')
+    df_hourly.to_csv('Level0_hourly.csv', index = False)
 
     ### LEVEL 1 QA
 
@@ -263,11 +303,65 @@ def mergeeverything():
     #delete error columns
     df_raw.drop(['Case Error', 'PM Sensor Error'], axis = 1, inplace = True)
 
+    #data capping function for ug/m3 measurements
+
+    # 1 min -> >5000
+    # 5 min -> >2000
+    # >10min -> >1000
+
+    df_raw.loc[(df_raw['Time Delta'] >= 10) & (df_raw['PM1.0 (ug/m3)'] >= 1000), ['PM1.0 (ug/m3)']] = 1000
+    df_raw.loc[(df_raw['Time Delta'] >= 5) & (df_raw['PM1.0 (ug/m3)'] >= 2000), ['PM1.0 (ug/m3)']] = 2000
+    df_raw.loc[(df_raw['Time Delta'] >= 1) & (df_raw['PM1.0 (ug/m3)'] >= 5000), ['PM1.0 (ug/m3)']] = 5000
+
+    df_raw.loc[(df_raw['Time Delta'] >= 10) & (df_raw['PM2.5 (ug/m3)'] >= 1000), ['PM2.5 (ug/m3)']] = 1000
+    df_raw.loc[(df_raw['Time Delta'] >= 5) & (df_raw['PM2.5 (ug/m3)'] >= 2000), ['PM2.5 (ug/m3)']] = 2000
+    df_raw.loc[(df_raw['Time Delta'] >= 1) & (df_raw['PM2.5 (ug/m3)'] >= 5000), ['PM2.5 (ug/m3)']] = 5000
+
+    df_raw.loc[(df_raw['Time Delta'] >= 10) & (df_raw['PM4.0 (ug/m3)'] >= 1000), ['PM4.0 (ug/m3)']] = 1000
+    df_raw.loc[(df_raw['Time Delta'] >= 5) & (df_raw['PM4.0 (ug/m3)'] >= 2000), ['PM4.0 (ug/m3)']] = 2000
+    df_raw.loc[(df_raw['Time Delta'] >= 1) & (df_raw['PM4.0 (ug/m3)'] >= 5000), ['PM4.0 (ug/m3)']] = 5000
+
+    df_raw.loc[(df_raw['Time Delta'] >= 10) & (df_raw['PM10 (ug/m3)'] >= 1000), ['PM10 (ug/m3)']] = 1000
+    df_raw.loc[(df_raw['Time Delta'] >= 5) & (df_raw['PM10 (ug/m3)'] >= 2000), ['PM10 (ug/m3)']] = 2000
+    df_raw.loc[(df_raw['Time Delta'] >= 1) & (df_raw['PM10 (ug/m3)'] >= 5000), ['PM10 (ug/m3)']] = 5000
+
     ### OUTPUT
-    #output
     df_raw.to_csv('Level1.csv', index = False)
 
+    ### Level 1 Hourly (same logic as Level 0 Hourly)
+
+    df_hourly_1 = pd.read_csv('Level1.csv')
+    time = pd.to_datetime(df_hourly_1['Timestamp (UTC)'], format='%m/%d/%Y %H:%M')
+
+    #don't count rows where there is PM Sensor error
+    df_hourly_1 = df_hourly_1[df_hourly_1['PM1.0 (ug/m3)'].notna()]
+
+    grouping = df_hourly_1.groupby(['Serial Number', time.dt.year, time.dt.month, time.dt.day, time.dt.hour]).transform(lambda x: len(x))
+    count = grouping['Time Delta']
+    df_hourly_1.insert(len(df_hourly_1.columns),'Entry Count', count)
+
+    #75% completeness criteria for each hour
+    df_hourly_1 = df_hourly_1[df_hourly_1['Entry Count'] * df_hourly_1['Time Delta'] >= 45]
+
+    df_hourly_1_groups = df_hourly_1.groupby(['Serial Number', time.dt.year, time.dt.month, time.dt.day, time.dt.hour, 
+                                        'Country', 'Site Name', 'Longitude', 'Latitude', 'is_indoors'], as_index = True)
+
+    df_hourly_1 = df_hourly_1_groups[['PM1.0 (ug/m3)','PM2.5 (ug/m3)','PM4.0 (ug/m3)','PM10 (ug/m3)',
+                                'PM0.5 NC (#/cm3)','PM1.0 NC (#/cm3)','PM2.5 NC (#/cm3)','PM4.0 NC (#/cm3)',    
+                                'PM10 NC (#/cm3)','Typical Particle Size (um)','Temperature (Celsius)',
+                                'Relative Humidity (%)', 'Time Delta', 'Entry Count']].mean()
     
+    df_hourly_1 = df_hourly_1.reset_index(level = ['Serial Number', 'Country', 'Site Name', 'Longitude', 'Latitude', 'is_indoors'])
+    df_hourly_1.insert(3,'Timestamp (UTC)', df_hourly_1.index)
+    df_hourly_1.insert(9,'Applied PM2.5 Custom Calibration Factor', "")
+    df_hourly_1.insert(12,'Applied PM10 Custom Calibration Factor', "")
+    
+    #include Applied PM2.5 Custom Calibration Factor', 'Applied PM10 Custom Calibration Factor  
+
+    #convert tuple to datetime
+    df_hourly_1['Timestamp (UTC)'] = df_hourly_1['Timestamp (UTC)'].apply(lambda x: datetime(*x))
+    df_hourly_1['Timestamp (UTC)'] = df_hourly_1['Timestamp (UTC)'].dt.strftime('%m/%d/%Y %H:%M')
+    df_hourly_1.to_csv('Level1_hourly.csv', index = False)
 
 #user input for RAW or MERGED file
 userinput = input("Which output do you want: RAW or MERGED? (1/2)")
