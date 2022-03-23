@@ -33,8 +33,8 @@ def get_data(json_fname):
     BUFFER = 60 #seconds.  How long it takes to run the rest of your program 
 # after reading the security token.  Increase if needed.
     tokencached = False
-    if os.path.exists(CACHE_FILENAME):
-        modified=os.path.getmtime(CACHE_FILENAME)
+    if os.path.exists(os.path.join(r'./tokens', CACHE_FILENAME)):
+        modified=os.path.getmtime(os.path.join(r'./tokens', CACHE_FILENAME))
         now = datetime.now().timestamp()    
         delta = now - modified
         if delta < (tok_expires - BUFFER):  #if token is still valid, read it
@@ -47,7 +47,8 @@ def get_data(json_fname):
         print("No token code file found")
     
     if tokencached == True:
-        cfile = open(CACHE_FILENAME,'r')
+        #cfile = open(CACHE_FILENAME,'r')
+        cfile = open(os.path.join(r'./tokens', CACHE_FILENAME),'r')
         tok_code = cfile.read()
         print("Read valid token code")
         cfile.close()
@@ -71,7 +72,8 @@ def get_data(json_fname):
         tok_type = response_json['token_type'] 
         tok_expires = int(response_json['expires_in'])
     
-        cfile = open(CACHE_FILENAME,'w')
+        #cfile = open(CACHE_FILENAME,'w')
+        cfile = open(os.path.join(r'./tokens', CACHE_FILENAME),'w')
         cfile.write(tok_code)
         cfile.close()
         print("Token written to file")
@@ -113,8 +115,13 @@ def get_data(json_fname):
 #optional arguments
     headers.update({'Accept': 'text/csv'})  #comment out this line for json
     #data_age="&age=1" #days of data (can be used with start date)
+    
+    year = "2022"
+    start_month = "03"
+    end_month = "04"
+
     data_start_date = "&start_date=2022-03-01T00:00:00.000Z"  #use UTC format.  
-    data_end_date = "&end_date=2022-03-03T23:59:59.000Z"  #use UTC format
+    data_end_date = "&end_date=2022-03-02T23:59:59.000Z"  #use UTC format
     if (data_start_date != "" and data_end_date != ""):
         fname_s = data_start_date[12:22]  #only want the date part of the string
         fname_e = data_end_date[10:20]
@@ -140,13 +147,14 @@ def mergeindividual():
     PATH = r"C:\Users\wudar\Desktop\Bergin_Research"
 
 #retrieve data (.csv files) from TSI-LINK API
-    get_data("secrets-c2mgvpsfp7ufo92pvpp0.json")
-    get_data("secrets-c4257c0qi9clu8nikfgg.json")
-    get_data("secrets-c3pq1sgqi9clu8nik8sg.json")
-    get_data("secrets-c3ntnbr5lksr8n0vf7d0.json")
-    get_data("secrets-c3r1gb0qi9clu8nik91g.json")
-    get_data("secrets-c3t9bo8qi9clu8nikakg.json")
-    get_data("secrets-c3smtl0qi9clu8nikadg.json")
+    get_data("secrets-c5r4cdtomcjrs8opeksg.json")
+    #get_data("secrets-c2mgvpsfp7ufo92pvpp0.json")
+    #get_data("secrets-c4257c0qi9clu8nikfgg.json")
+    #get_data("secrets-c3pq1sgqi9clu8nik8sg.json")
+    #get_data("secrets-c3ntnbr5lksr8n0vf7d0.json")
+    #get_data("secrets-c3r1gb0qi9clu8nik91g.json")
+    #get_data("secrets-c3t9bo8qi9clu8nikakg.json")
+    #get_data("secrets-c3smtl0qi9clu8nikadg.json")
 #create file list by matching files with "8143" index in their serial number/filename. 
     joined_files = os.path.join(PATH, "8143*.csv")
     joined_list = glob.glob(joined_files)
@@ -240,10 +248,10 @@ def mergeeverything():
     df_raw[['PM1.0 (ug/m3)', 'PM2.5 (ug/m3)', 'PM4.0 (ug/m3)', 'PM10 (ug/m3)']] = df_raw[['PM1.0 (ug/m3)', 'PM2.5 (ug/m3)', 'PM4.0 (ug/m3)', 'PM10 (ug/m3)']].apply(pd.to_numeric, downcast = 'signed', errors='coerce')
 
     #sort datetime column correctly
-    df_raw["Timestamp (UTC)"] = pd.to_datetime(df_raw["Timestamp (UTC)"])
-    df_raw = df_raw.sort_values(by = "Timestamp (UTC)", ascending = True, kind = 'mergesort')
+    #df_raw["Timestamp (UTC)"] = pd.to_datetime(df_raw["Timestamp (UTC)"])
+    #df_raw = df_raw.sort_values(by = "Timestamp (UTC)", ascending = True, kind = 'mergesort')
     #reformat datetime into original format 
-    df_raw["Timestamp (UTC)"] = df_raw["Timestamp (UTC)"].dt.strftime("%m/%d/%Y %H:%M")
+    #df_raw["Timestamp (UTC)"] = df_raw["Timestamp (UTC)"].dt.strftime("%m/%d/%Y %H:%M")
 
     #revert type of serial number column
     df_raw["Serial Number"] = df_raw["Serial Number"].astype(np.int64)
@@ -262,8 +270,8 @@ def mergeeverything():
 
     df_hourly = df_hourly[df_hourly['Entry Count'] * df_hourly['Time Delta'] >= 45]
 
-    df_hourly_groups = df_hourly.groupby(['Serial Number', time.dt.year, time.dt.month, time.dt.day, time.dt.hour, 
-                                        'Country', 'Site Name', 'Longitude', 'Latitude', 'is_indoors'], as_index = True)
+    df_hourly_groups = df_hourly.groupby(['Country', 'Serial Number', time.dt.year, time.dt.month, time.dt.day, time.dt.hour, 
+                                         'Site Name', 'Longitude', 'Latitude', 'is_indoors'], as_index = True)
 
     df_hourly = df_hourly_groups[['PM1.0 (ug/m3)','PM2.5 (ug/m3)','PM4.0 (ug/m3)','PM10 (ug/m3)',
                                 'PM0.5 NC (#/cm3)','PM1.0 NC (#/cm3)','PM2.5 NC (#/cm3)','PM4.0 NC (#/cm3)',    
@@ -279,6 +287,12 @@ def mergeeverything():
     #convert tuple timestamp to datetime type
     df_hourly['Timestamp (UTC)'] = df_hourly['Timestamp (UTC)'].apply(lambda x: datetime(*x))
     df_hourly['Timestamp (UTC)'] = df_hourly['Timestamp (UTC)'].dt.strftime('%m/%d/%Y %H:%M')
+
+    #precision value adjustment for data
+    df_hourly[['PM1.0 (ug/m3)', 'PM2.5 (ug/m3)', 'PM4.0 (ug/m3)', 'PM10 (ug/m3)', 'Typical Particle Size (um)']] = df_hourly[['PM1.0 (ug/m3)', 'PM2.5 (ug/m3)', 'PM4.0 (ug/m3)', 'PM10 (ug/m3)', 'Typical Particle Size (um)']].round(2)
+
+    df_hourly[['PM0.5 NC (#/cm3)', 'PM1.0 NC (#/cm3)', 'PM2.5 NC (#/cm3)', 'PM4.0 NC (#/cm3)', 'PM10 NC (#/cm3)', 'Temperature (Celsius)', 'Relative Humidity (%)', 'Time Delta']] = df_hourly[['PM0.5 NC (#/cm3)', 'PM1.0 NC (#/cm3)', 'PM2.5 NC (#/cm3)', 'PM4.0 NC (#/cm3)', 'PM10 NC (#/cm3)', 'Temperature (Celsius)', 'Relative Humidity (%)', 'Time Delta']].round(1)
+    
     df_hourly.to_csv('Level0_hourly.csv', index = False)
 
     ### LEVEL 1 QA
@@ -343,14 +357,15 @@ def mergeeverything():
     #75% completeness criteria for each hour
     df_hourly_1 = df_hourly_1[df_hourly_1['Entry Count'] * df_hourly_1['Time Delta'] >= 45]
 
-    df_hourly_1_groups = df_hourly_1.groupby(['Serial Number', time.dt.year, time.dt.month, time.dt.day, time.dt.hour, 
-                                        'Country', 'Site Name', 'Longitude', 'Latitude', 'is_indoors'], as_index = True)
+    df_hourly_1_groups = df_hourly_1.groupby(['Country', 'Serial Number', time.dt.year, time.dt.month, time.dt.day, time.dt.hour, 
+                                        'Site Name', 'Longitude', 'Latitude', 'is_indoors'], as_index = True)
 
     df_hourly_1 = df_hourly_1_groups[['PM1.0 (ug/m3)','PM2.5 (ug/m3)','PM4.0 (ug/m3)','PM10 (ug/m3)',
                                 'PM0.5 NC (#/cm3)','PM1.0 NC (#/cm3)','PM2.5 NC (#/cm3)','PM4.0 NC (#/cm3)',    
                                 'PM10 NC (#/cm3)','Typical Particle Size (um)','Temperature (Celsius)',
                                 'Relative Humidity (%)', 'Time Delta', 'Entry Count']].mean()
-    
+
+
     df_hourly_1 = df_hourly_1.reset_index(level = ['Serial Number', 'Country', 'Site Name', 'Longitude', 'Latitude', 'is_indoors'])
     df_hourly_1.insert(3,'Timestamp (UTC)', df_hourly_1.index)
     df_hourly_1.insert(9,'Applied PM2.5 Custom Calibration Factor', "")
@@ -361,17 +376,14 @@ def mergeeverything():
     #convert tuple to datetime
     df_hourly_1['Timestamp (UTC)'] = df_hourly_1['Timestamp (UTC)'].apply(lambda x: datetime(*x))
     df_hourly_1['Timestamp (UTC)'] = df_hourly_1['Timestamp (UTC)'].dt.strftime('%m/%d/%Y %H:%M')
+
+    #precision value adjustment for data
+    df_hourly_1[['PM1.0 (ug/m3)', 'PM2.5 (ug/m3)', 'PM4.0 (ug/m3)', 'PM10 (ug/m3)', 'Typical Particle Size (um)']] = df_hourly_1[['PM1.0 (ug/m3)', 'PM2.5 (ug/m3)', 'PM4.0 (ug/m3)', 'PM10 (ug/m3)', 'Typical Particle Size (um)']].round(2)
+
+    df_hourly_1[['PM0.5 NC (#/cm3)', 'PM1.0 NC (#/cm3)', 'PM2.5 NC (#/cm3)', 'PM4.0 NC (#/cm3)', 'PM10 NC (#/cm3)', 'Temperature (Celsius)', 'Relative Humidity (%)', 'Time Delta']] = df_hourly_1[['PM0.5 NC (#/cm3)', 'PM1.0 NC (#/cm3)', 'PM2.5 NC (#/cm3)', 'PM4.0 NC (#/cm3)', 'PM10 NC (#/cm3)', 'Temperature (Celsius)', 'Relative Humidity (%)', 'Time Delta']].round(1)
+
     df_hourly_1.to_csv('Level1_hourly.csv', index = False)
 
-#user input for RAW or MERGED file
-userinput = input("Which output do you want: RAW or MERGED? (1/2)")
-
-if userinput == "1":
-    print("hahaha")
-
-elif userinput == "2":
-    mergeeverything()
-
-else:
-    print("Wrong user input. Try again.")
+#run function
+mergeeverything()
 

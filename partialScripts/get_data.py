@@ -23,7 +23,7 @@ interface. TSI is not responsible for any damage or data loss due to using
 or modifying the code below.
 -------------- Read credentials file --------------"""
 #replace filename with your file from TSI-L ink API
-with open("secrets-c3smtl0qi9clu8nikadg.json") as cred_file:  
+with open("secrets-c5r4cdtomcjrs8opeksg.json") as cred_file:  
     cred_data = json.load(cred_file)
     
 """-------------- Get security token information --------------
@@ -134,8 +134,8 @@ headers['Authorization'] = tok_code
 #optional arguments
 headers.update({'Accept': 'text/csv'})  #comment out this line for json
 #data_age="&age=1" #days of data (can be used with start date)
-data_start_date = "&start_date=2021-12-30T00:00:00.000Z"  #use UTC format.  
-data_end_date = "&end_date=2022-01-02T00:00:00.000Z"  #use UTC format
+data_start_date = "&start_date=2022-03-01T00:00:00.000Z"  #use UTC format.  
+data_end_date = "&end_date=2022-03-02T00:00:00.000Z"  #use UTC format
 if (data_start_date != "" and data_end_date != ""):
     fname_s = data_start_date[12:22]  #only want the date part of the string
     fname_e = data_end_date[10:20]
